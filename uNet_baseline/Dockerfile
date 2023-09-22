@@ -21,7 +21,7 @@ COPY --chown=algorithm:algorithm monai_unet.py /opt/algorithm/
 RUN python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 RUN python -m pip install --user -rrequirements.txt
 
-COPY --chown=algorithm:algorithm epoch=777-step=64573.ckpt /opt/algorithm/
+COPY --chown=algorithm:algorithm model_ep=0196.pth /opt/algorithm/
 
 COPY --chown=algorithm:algorithm process.py /opt/algorithm/
 

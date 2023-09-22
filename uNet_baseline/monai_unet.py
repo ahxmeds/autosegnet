@@ -15,7 +15,9 @@ from monai.transforms import (
     EnsureType,
     ConcatItemsd,
     RandAffined,
-    ToTensord
+    ToTensord,
+    DeleteItemsd,
+    EnsureChannelFirstd
 )
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
@@ -43,16 +45,16 @@ class Net(pytorch_lightning.LightningModule):
             dimensions=3,
             in_channels=2,
             out_channels=2,
-            channels=(16, 32, 64, 128, 256),
+            channels=(32, 64, 128, 256, 512),
             strides=(2, 2, 2, 2),
             num_res_units=2,
             norm=Norm.BATCH,
         )
-        self.loss_function = DiceLoss(to_onehot_y=True,softmax=True,include_background=False,batch=True)
-        self.post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=2)
-        self.post_label = AsDiscrete(to_onehot=True, n_classes=2)
-        self.best_val_dice = 0
-        self.best_val_epoch = 0
+        # self.loss_function = DiceLoss(to_onehot_y=True,softmax=True,include_background=False,batch=True)
+        # self.post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=2)
+        # self.post_label = AsDiscrete(to_onehot=True, n_classes=2)
+        # self.best_val_dice = 0
+        # self.best_val_epoch = 0
 
     def forward(self, x):
         return self._model(x)
@@ -63,34 +65,23 @@ class Net(pytorch_lightning.LightningModule):
         images_ct = sorted(glob.glob(os.path.join(data_dir, "CTres*")))
        
         data_dicts = [
-            {"image_pt": image_name_pt, "image_ct": image_name_ct}
+            {'PT': image_name_pt, 'CT': image_name_ct}
             for image_name_pt, image_name_ct in zip(images_pt, images_ct)
         ]
         val_files = data_dicts
-                
+        mod_keys = ['CT', 'PT']
+        spacing = (2,2,2)
         val_transforms = Compose(
             [
-                LoadImaged(keys=["image_pt", "image_ct"]),
-                AddChanneld(keys=["image_pt", "image_ct"]),
-                
-                #Spacingd(
-                  #  keys=["image_pt", "image_ct"],
-                   # pixdim=(2, 2, 3),
-                    #mode=("bilinear", "bilinear"),
-                #),
-                #Orientationd(keys=["image_pt", "image_ct"], axcodes="LAS"),
-                
-                ScaleIntensityRanged(
-                    keys=["image_ct"], a_min=-100, a_max=250,
-                    b_min=0.0, b_max=1.0, clip=False,
-                ),
-                ScaleIntensityRanged(
-                    keys=["image_pt"], a_min=0, a_max=15,
-                    b_min=0.0, b_max=1.0, clip=False,
-                ),                            
-                ConcatItemsd(keys=["image_pt", "image_ct"], name="image_petct", dim=0),# concatenate pet and ct channels
-                                              
-                ToTensord(keys=["image_petct"]),
+                LoadImaged(keys=mod_keys),
+                EnsureChannelFirstd(keys=mod_keys),
+                ScaleIntensityRanged(keys=['CT'], a_min=-1024, a_max=1024, b_min=0, b_max=1, clip=True),
+                # ScaleIntensityd(keys=['PT'], minv=0, maxv=1),
+                CropForegroundd(keys=mod_keys, source_key='CT'),
+                Orientationd(keys=mod_keys, axcodes="RAS"),
+                Spacingd(keys=mod_keys, pixdim=spacing, mode=('bilinear', 'bilinear', 'nearest')),
+                ConcatItemsd(keys=['CT', 'PT'], name='CTPT', dim=0),
+                DeleteItemsd(keys=['CT', 'PT'])
             ]
         )
 
@@ -114,10 +105,10 @@ def segment_PETCT(ckpt_path, data_dir, export_dir):
 
     with torch.no_grad():
         for i, val_data in enumerate(net.val_dataloader()):
-            roi_size = (160, 160, 160)
+            roi_size = (192, 192, 192)
             sw_batch_size = 4
             
-            mask_out = sliding_window_inference(val_data["image_petct"].to(device), roi_size, sw_batch_size, net)
+            mask_out = sliding_window_inference(val_data["CTPT"].to(device), roi_size, sw_batch_size, net)
             mask_out = torch.argmax(mask_out, dim=1).detach().cpu().numpy().squeeze()
             mask_out = mask_out.astype(np.uint8)               
             print("done inference")
@@ -133,7 +124,7 @@ def segment_PETCT(ckpt_path, data_dir, export_dir):
             print("done writing")
 
 
-def run_inference(ckpt_path='/opt/algorithm/epoch=777-step=64573.ckpt', data_dir='/opt/algorithm/', export_dir='/output/'):
+def run_inference(ckpt_path='/opt/algorithm/model_ep=0196.pth', data_dir='/opt/algorithm/', export_dir='/output/images/automated-petct-lesion-segmentation/'):
     segment_PETCT(ckpt_path, data_dir, export_dir)
 
 

@@ -15,7 +15,7 @@ class Unet_baseline():  # SegmentationAlgorithm is not inherited in this class a
         self.input_path = '/input/'  # according to the specified grand-challenge interfaces
         self.output_path = '/output/images/automated-petct-lesion-segmentation/'  # according to the specified grand-challenge interfaces
         self.nii_path = '/opt/algorithm/'  # where to store the nii files
-        self.ckpt_path = '/opt/algorithm/epoch=777-step=64573.ckpt'
+        self.ckpt_path = '/opt/algorithm/model_ep=0196.pth'
 
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
