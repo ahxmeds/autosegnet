@@ -15,7 +15,11 @@ class Unet_baseline():  # SegmentationAlgorithm is not inherited in this class a
         self.input_path = '/input/'  # according to the specified grand-challenge interfaces
         self.output_path = '/output/images/automated-petct-lesion-segmentation/'  # according to the specified grand-challenge interfaces
         self.nii_path = '/opt/algorithm/'  # where to store the nii files
-        self.ckpt_path = '/opt/algorithm/model_ep=0196.pth'
+        self.ckpt_path0 = '/opt/algorithm/fold0_model_ep=0262.pth'
+        self.ckpt_path1 = '/opt/algorithm/fold1_model_ep=0238.pth'
+        self.ckpt_path2 = '/opt/algorithm/fold2_model_ep=0236.pth'
+        self.ckpt_path3 = '/opt/algorithm/fold3_model_ep=0230.pth'
+        self.ckpt_path4 = '/opt/algorithm/fold4_model_ep=0202.pth'
 
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
@@ -81,7 +85,15 @@ class Unet_baseline():  # SegmentationAlgorithm is not inherited in this class a
         print('Start processing')
         uuid = self.load_inputs()
         print('Start prediction')
-        monai_unet.run_inference(self.ckpt_path, self.nii_path, self.output_path)
+        monai_unet.run_inference(
+            self.ckpt_path0,
+            self.ckpt_path1,
+            self.ckpt_path2,
+            self.ckpt_path3,
+            self.ckpt_path4,
+            self.nii_path, 
+            self.output_path
+        )
         print('Start output writing')
         self.write_outputs(uuid)
 

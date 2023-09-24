@@ -4,7 +4,7 @@ SCRIPTPATH="$(dirname "$( cd "$(dirname "$0")" ; pwd -P )")"
 SCRIPTPATHCURR="$( cd "$(dirname "$0")" ; pwd -P )"
 echo $SCRIPTPATH
 
-./build.sh
+bash build.sh
 
 VOLUME_SUFFIX=$(dd if=/dev/urandom bs=32 count=1 | md5sum | cut --delimiter=' ' --fields=1)
 MEM_LIMIT="30g"  # Maximum is currently 30g, configurable in your algorithm image settings on grand challenge
