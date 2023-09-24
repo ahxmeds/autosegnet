@@ -1,1 +1,1 @@
-# autoPET challenge
+# autoPET 2023 challenge
